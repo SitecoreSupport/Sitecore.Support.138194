@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-
-namespace Sitecore.Support.Data.SqlServer
+﻿namespace Sitecore.Support.Data.SqlServer
 {
     using System.Reflection;
+    using System.Web;
     using Sitecore.Caching;
-    using Sitecore.Configuration;
     using Sitecore.Data.DataProviders.Sql;
     using Sitecore.Diagnostics;
     using Sitecore.Diagnostics.PerformanceCounters;
@@ -22,33 +17,25 @@ namespace Sitecore.Support.Data.SqlServer
         public SqlServerClientDataStore(SqlDataApi api, string objectLifetime) : base(api, objectLifetime)
         {
         }
-        
+
 
         /// <summary>
         /// The only modified method, all others are copy-pasted due to being private
         /// </summary>
         protected override void TouchActiveData()
         {
-            var myField = typeof(SqlServerClientDataStore).BaseType
-                             .BaseType
-                             .GetField("_cache", BindingFlags.Instance | BindingFlags.NonPublic);
+            var _cacheFieldInfo = typeof(SqlServerClientDataStore).BaseType.BaseType.GetField("_cache", BindingFlags.Instance | BindingFlags.NonPublic);
 
-            if (myField != null)
+            if (_cacheFieldInfo != null)
             {
-                ICache tempCache = myField.GetValue(this) as ICache;
-                if (tempCache==null)
+                ICache _cache = _cacheFieldInfo.GetValue(this) as ICache;
+                if (_cache == null) return;
+                                
+                foreach (var key in _cache.GetCacheKeys())
                 {
-                    return;
-                }
-                string[] cacheKeys = tempCache.GetCacheKeys();
-                string[] array = cacheKeys;
-                for (int i = 0; i < array.Length; i++)
-                {
-                    string key = array[i];
-                    object obj = tempCache[key];
-                    if (obj != null)
+                    if (!string.IsNullOrEmpty(key) && _cache[key] != null)
                     {
-                        this.Touch(key as string);
+                        this.Touch(key);
                     }
                 }
             }
